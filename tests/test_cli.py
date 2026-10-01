@@ -25,7 +25,7 @@ def setup(tmp_path):
     (tmp_path / "vocabulary.txt").write_text("GitHub\n")
     conf = tmp_path / "config.toml"
     conf.write_text(f'[whisper]\nurl = "{whisper.url}"\n[cleanup]\nurl = "{ollama.url}"\n'
-                    f"[paths]\ndata_dir = '{tmp_path / 'data'}'\n")
+                    f"[recording]\nkeep_history = true\n[paths]\ndata_dir = '{tmp_path / 'data'}'\n")
     wav = make_wav(tmp_path / "a.wav", [(1.0, 0.3)])
     yield conf, wav, whisper, ollama
     whisper.close()
@@ -105,3 +105,11 @@ def test_text_out_empty_on_silence(setup, tmp_path):
     out = dictate(str(silent), "--text-out", str(out_file), config=conf)
     assert out.returncode == 0
     assert out_file.read_text(encoding="utf-8") == ""
+
+
+def test_history_command_says_when_disabled(tmp_path):
+    conf = tmp_path / "config.toml"
+    conf.write_text(f"[paths]\ndata_dir = '{tmp_path / 'data'}'\n")
+    out = dictate("history", config=conf)
+    assert out.returncode == 0
+    assert "keep_history" in out.stdout

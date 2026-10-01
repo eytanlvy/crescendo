@@ -220,6 +220,5 @@ cat <<EOF
 crescendo est installé.
   - Dicter : $( [[ -n "$HOLD_KEY" ]] && echo "maintenez $HOLD_KEY, parlez, relâchez" || echo "$SHORTCUT pour démarrer, de nouveau pour coller" )
   - Vocabulaire : $REPO/vocabulary.txt
-  - Historique : python3 $REPO/bin/dictate history -v
   - Désinstaller : $REPO/scripts/uninstall-linux.sh
 EOF

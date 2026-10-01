@@ -103,6 +103,9 @@ def _pct(values: list[float]) -> str:
 
 
 def cmd_history(cfg: dict, args) -> int:
+    if not cfg["recording"]["keep_history"]:
+        print("Historique désactivé : rien n'est enregistré. Pour l'activer : keep_history = true dans config.toml.")
+        return EXIT_OK
     data_dir = Path(cfg["paths"]["data_dir"])
     records = _read_jsonl(data_dir / "history.jsonl")
     if args.stats:

@@ -28,6 +28,8 @@ url = "{whisper.url}"
 [cleanup]
 url = "{ollama.url}"
 timeout_s = 2.0
+[recording]
+keep_history = true
 [paths]
 data_dir = '{tmp_path / "data"}'
 vocabulary = "vocabulary.txt"
@@ -163,3 +165,18 @@ def test_falls_back_to_example_vocabulary_when_personal_file_missing(tmp_path, c
     assert res["text"] == "Déploie sur Kubernetes. "
     assert res["warnings"] == []
     assert b"Kubernetes" in whisper.requests[0][2]
+
+
+def test_no_history_written_when_disabled(tmp_path, cfg, servers):
+    whisper, _ = servers
+    cfg["recording"]["keep_history"] = False
+    whisper.response = {"text": "Oui."}
+    res = run(speech_wav(tmp_path), cfg)
+    assert res["status"] == "ok" and res["text"] == "Oui. "
+    assert not (tmp_path / "data" / "history.jsonl").exists()
+
+
+def test_history_is_disabled_by_default():
+    from dictate.config import DEFAULTS
+    assert DEFAULTS["recording"]["keep_history"] is False
+    assert DEFAULTS["recording"]["keep_audio"] == 0

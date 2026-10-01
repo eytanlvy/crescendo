@@ -6,7 +6,7 @@
 #    put the most important first) and terms containing a capital letter also fix casing (github → GitHub).
 #    Add your project names, people, tools, libraries, acronyms: anything Whisper keeps getting wrong.
 # 2) REPLACEMENTS — "heard => written", applied last, case-insensitive, whole words only.
-#    Check `bin/dictate history -v` for recurring mistakes and add them here.
+#    To spot recurring mistakes: keep_history = true in config.toml, then `bin/dictate history -v`.
 
 Claude
 Claude Code

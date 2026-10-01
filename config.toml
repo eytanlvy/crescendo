@@ -15,6 +15,7 @@ tail_ms = 150             # l'enregistrement continue un instant après le relâ
 speech_threshold_dbfs = -42.0 # trame de 30 ms au-dessus de ce niveau = « parole »
 min_speech_s = 0.15        # moins de parole que ça : silence, Whisper n'est pas appelé (évite les hallucinations)
 keep_audio = 0            # nombre de wav récents conservés dans data_dir/audio (0 = aucun)
+keep_history = false      # true : journalise chaque dictée (texte, latences) dans data_dir/history.jsonl
 
 [whisper]
 url = "http://127.0.0.1:8178"

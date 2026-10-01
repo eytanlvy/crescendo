@@ -75,7 +75,8 @@ def run(wav: Path | str, cfg: dict, mode: str = "insert", app: str | None = None
         record.update(status=status, final=res["text"].rstrip(" "), warnings=warnings, timings_ms=timings,
                       **{k: v for k, v in extra.items() if k not in record})
         try:
-            _append_history(data_dir, record)
+            if rec_cfg["keep_history"]:
+                _append_history(data_dir, record)
             if status not in ("too_short",):
                 _keep_audio(wav, data_dir, res["id"], rec_cfg["keep_audio"])
         except OSError as e:

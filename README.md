@@ -86,7 +86,7 @@ cube control => kubectl
 - Write it by hand, or ask an LLM to draft it from your projects.
 - Example prompt: *"List the 40 terms from this repository a speech recognizer is most likely to misspell, one per
   line, most important first. Then add likely mis-hearings as `heard => written`."*
-- Improve it from real mistakes: `bin/dictate history -v`.
+- Improve it from real mistakes: set `keep_history = true`, then `bin/dictate history -v`.
 
 ## Configuration
 
@@ -99,14 +99,17 @@ All settings live in [`config.toml`](config.toml). Reload Hammerspoon after edit
 - **Cleanup mode:** `"always"` or `"auto"` (LLM only when needed, ~0.65 s faster).
 - **Disable cleanup:** `[cleanup] enabled = false`.
 
-## History
+## Privacy
 
-- Every dictation is logged to `~/.local/share/voice-dictation/history.jsonl`.
-- Includes: target app, raw and final text, per-stage latency.
-- Recordings are deleted after transcription (`keep_audio = N` keeps the last N in `audio/`).
+- Nothing is stored by default: no audio, no text.
+- Each recording is deleted as soon as it is transcribed.
+- Optional, in `[recording]`:
+  - `keep_history = true` logs each dictation (raw and final text, latencies) to
+    `~/.local/share/voice-dictation/history.jsonl`;
+  - `keep_audio = N` keeps the last N recordings in `audio/`.
 
 ```sh
-bin/dictate history -n 20 -v   # recent dictations, with raw text
+bin/dictate history -n 20 -v   # recent dictations, with raw text (needs keep_history)
 bin/dictate history --stats    # latency per stage
 ```
 
@@ -203,7 +206,7 @@ Hammerspoon (Lua)                     bin/dictate (Python, stdlib only)
                                       2. whisper-server (vocabulary prompt)
                                       3. filter hallucinations
                                       4. Ollama cleanup + guardrails
-                                      5. replacements, casing, history
+                                      5. replacements, casing
             ◀──────── text ─────────
 paste (⌘V), restore clipboard, Enter if ⌥⇧Space
 ```

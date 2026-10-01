@@ -129,6 +129,7 @@ end
 -------------------------------------------------------------------------------
 
 local function appendE2E(record)
+  if not cfg.recording.keep_history then return end
   local f = io.open(cfg.paths.data_dir .. "/e2e.jsonl", "a")
   if f then f:write(hs.json.encode(record) .. "\n"); f:close() end
 end

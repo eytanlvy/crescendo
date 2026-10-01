@@ -23,6 +23,7 @@ DEFAULTS: dict = {
         "speech_threshold_dbfs": -42.0,
         "min_speech_s": 0.15,
         "keep_audio": 0,
+        "keep_history": False,
     },
     "whisper": {
         "url": "http://127.0.0.1:8178",

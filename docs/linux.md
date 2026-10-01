@@ -53,7 +53,6 @@ Notes:
 
 ```sh
 systemctl --user status crescendo-whisper crescendo
-python3 bin/dictate history -v
 journalctl --user -u crescendo -f
 ```
 
@@ -66,7 +65,7 @@ arecord -f S16_LE -r 16000 -c 1 -d 5 test.wav && python3 bin/dictate test.wav
 ## Uninstall
 
 ```sh
-scripts/uninstall-linux.sh            # services, shortcuts, whisper.cpp build, models, history
+scripts/uninstall-linux.sh            # services, shortcuts, whisper.cpp build, models
 scripts/uninstall-linux.sh --ollama   # + the cleanup model
 ```
 
