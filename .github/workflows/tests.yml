@@ -15,10 +15,12 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pytest
+        timeout-minutes: 5
       - run: python -m pytest -q
 
   linux-x11-paste:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
       - run: sudo apt-get update -q && sudo apt-get install -yq xvfb openbox xterm xclip xdotool
@@ -31,6 +33,7 @@ jobs:
 
   windows-ahk-syntax:
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - run: choco install autohotkey -y --no-progress

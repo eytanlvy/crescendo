@@ -45,7 +45,7 @@ def llm(text):
 
 def history(cfg):
     path = cfg["paths"]["data_dir"] + "/history.jsonl"
-    return [json.loads(line) for line in open(path)]
+    return [json.loads(line) for line in open(path, encoding="utf-8")]
 
 
 def test_full_pipeline(tmp_path, cfg, servers):
@@ -108,6 +108,7 @@ def test_whisper_down_is_an_error(tmp_path, cfg, dead_url):
 def test_ollama_down_inserts_raw_with_warning(tmp_path, cfg, servers, dead_url):
     whisper, _ = servers
     cfg["cleanup"]["url"] = dead_url
+    cfg["cleanup"]["timeout_s"] = 5.0  # Windows : refus de connexion après ~2 s
     whisper.response = {"text": " euh pousse sur github avant ce soir"}
     res = run(speech_wav(tmp_path), cfg)
     assert res["status"] == "ok"

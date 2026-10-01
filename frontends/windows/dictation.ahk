@@ -75,7 +75,7 @@ HideOverlay() {
     }
 }
 
-Dictate(mode, spec) {
+StartDictation(mode, spec) {
     global recPid, recFile, tPress, cancelled
     if recPid
         return
@@ -159,8 +159,8 @@ Cancel(*) {
 
 dictateSpec := Cfg("hotkeys.dictate")
 enterSpec := Cfg("hotkeys.dictate_and_enter")
-Hotkey(ToAhk(dictateSpec), (*) => Dictate("insert", dictateSpec))
-Hotkey(ToAhk(enterSpec), (*) => Dictate("enter", enterSpec))
+Hotkey(ToAhk(dictateSpec), (*) => StartDictation("insert", dictateSpec))
+Hotkey(ToAhk(enterSpec), (*) => StartDictation("enter", enterSpec))
 HotIf((*) => recPid != 0)
 for k in ["Esc", "!Esc", "+!Esc", "+Esc", "^Esc"]
     Hotkey(k, Cancel)
