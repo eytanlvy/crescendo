@@ -1,0 +1,10 @@
+#!/opt/homebrew/bin/python3 -S
+# Point d'entrée du pipeline de dictée. `-S` : pas d'import de site → démarrage plus rapide.
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+from dictate.cli import main  # noqa: E402
+
+sys.exit(main())

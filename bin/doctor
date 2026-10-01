@@ -1,0 +1,226 @@
+#!/opt/homebrew/bin/python3
+"""Diagnostic de la dictée vocale : config, binaires, modèles, services, permissions, mémoire, latence.
+
+Usage : bin/doctor [--no-latency]
+"""
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.request
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO))
+
+from dictate.config import ConfigError, load_config  # noqa: E402
+
+GREEN, RED, YELLOW, DIM, RESET = "\033[32m", "\033[31m", "\033[33m", "\033[2m", "\033[0m"
+failures = 0
+
+
+def ok(msg, fix=""):
+    print(f"{GREEN}✔{RESET} {msg}")
+
+
+def bad(msg, fix=""):
+    global failures
+    failures += 1
+    print(f"{RED}✘ {msg}{RESET}" + (f"\n    {DIM}→ {fix}{RESET}" if fix else ""))
+
+
+def warn(msg, fix=""):
+    print(f"{YELLOW}! {msg}{RESET}" + (f"\n    {DIM}→ {fix}{RESET}" if fix else ""))
+
+
+def sh(*cmd, timeout=15):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.returncode, (r.stdout + r.stderr).strip()
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 1, str(e)
+
+
+def http_json(url, payload=None, timeout=3):
+    data = json.dumps(payload).encode() if payload is not None else None
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        body = r.read()
+    try:
+        return json.loads(body)
+    except json.JSONDecodeError:
+        return {}
+
+
+def hs_lua(code):
+    rc, out = sh("/opt/homebrew/bin/hs", "-t", "8", "-c", code, timeout=12)
+    # hs préfixe parfois la sortie de lignes « -- Loading extension: … »
+    return rc, "\n".join(l for l in out.splitlines() if not l.startswith("-- ")).strip()
+
+
+def resident_mb(pid):
+    """Mémoire résidente (RSS) : inclut les poids des modèles mappés depuis le disque, contrairement à
+    `footprint` qui ne compte que la mémoire « sale »."""
+    code, out = sh("ps", "-o", "rss=", "-p", str(pid))
+    return int(out) / 1024 if code == 0 and out.strip().isdigit() else None
+
+
+def section(title):
+    print(f"\n\033[1m{title}\033[0m")
+
+
+def main():
+    no_latency = "--no-latency" in sys.argv
+
+    section("Configuration")
+    try:
+        cfg = load_config()
+        ok(f"config.toml valide ({REPO / 'config.toml'})")
+    except ConfigError as e:
+        bad(str(e), "corrigez config.toml")
+        return 1
+    from dictate.vocab import build_prompt, estimate_tokens, load_vocabulary, resolve_vocabulary_path
+    if resolve_vocabulary_path(cfg["paths"]["vocabulary"]).name == "vocabulary.example.txt":
+        warn("vocabulary.txt absent : le vocabulaire d'exemple est utilisé",
+             "cp vocabulary.example.txt vocabulary.txt, puis ajoutez vos termes")
+    try:
+        v = load_vocabulary(cfg["paths"]["vocabulary"])
+        p = build_prompt(v.terms)
+        kept = sum(t in p for t in v.terms)
+        msg = f"vocabulaire : {len(v.terms)} termes ({kept} dans le prompt Whisper, ~{estimate_tokens(p)} tokens), " \
+              f"{len(v.replacements)} remplacements"
+        (ok if kept == len(v.terms) else warn)(msg, "" if kept == len(v.terms) else
+                                               "prompt plein : les derniers termes sont ignorés par Whisper")
+    except (OSError, ValueError) as e:
+        bad(f"vocabulaire illisible : {e}")
+
+    section("Binaires et modèles")
+    for path in [cfg["recording"]["rec_binary"], "/opt/homebrew/bin/whisper-server", "/opt/homebrew/bin/ollama",
+                 cfg["paths"]["python"], "/Applications/Hammerspoon.app", "/opt/homebrew/bin/hs"]:
+        (ok if os.path.exists(path) else bad)(path, "" if os.path.exists(path) else "lancez scripts/install.sh")
+    model = Path(cfg["whisper"]["model"])
+    if model.exists():
+        ok(f"modèle Whisper {model.name} ({model.stat().st_size / 1e6:.0f} Mo)")
+    else:
+        bad(f"modèle Whisper absent : {model}", "lancez scripts/install.sh")
+
+    section("Services")
+    uid = os.getuid()
+    for label in ["com.voice-dictation.whisper", "com.voice-dictation.ollama"]:
+        code, out = sh("launchctl", "print", f"gui/{uid}/{label}")
+        state = re.search(r"state = (\w+)", out)
+        if code == 0 and state and state.group(1) == "running":
+            ok(f"LaunchAgent {label} actif")
+        else:
+            bad(f"LaunchAgent {label} : {state.group(1) if state else 'absent'}",
+                f"scripts/install.sh ; logs : {cfg['paths']['data_dir']}/logs/{label}.log")
+    try:
+        urllib.request.urlopen(cfg["whisper"]["url"], timeout=3).read()
+        ok(f"whisper-server répond ({cfg['whisper']['url']})")
+    except OSError as e:
+        bad(f"whisper-server injoignable : {e}", "launchctl kickstart -k gui/$(id -u)/com.voice-dictation.whisper")
+    llm = cfg["cleanup"]["model"]
+    try:
+        tags = http_json(cfg["cleanup"]["url"] + "/api/tags")
+        ok(f"Ollama répond ({cfg['cleanup']['url']})")
+        names = [m["name"] for m in tags.get("models", [])]
+        if llm in names or f"{llm}:latest" in names:
+            ok(f"modèle {llm} présent")
+        else:
+            bad(f"modèle {llm} absent", f"ollama pull {llm}")
+        loaded = {m["name"]: m for m in http_json(cfg["cleanup"]["url"] + "/api/ps").get("models", [])}
+        if llm in loaded:
+            ok(f"{llm} chargé en mémoire (jusqu'à {loaded[llm].get('expires_at', '?')[:10]})")
+        else:
+            warn(f"{llm} pas encore chargé en mémoire", "bin/dictate warmup (fait automatiquement au démarrage)")
+    except OSError as e:
+        bad(f"Ollama injoignable : {e}", "launchctl kickstart -k gui/$(id -u)/com.voice-dictation.ollama")
+
+    section("Hammerspoon et permissions")
+    code, _ = sh("pgrep", "-x", "Hammerspoon")
+    if code != 0:
+        bad("Hammerspoon n'est pas lancé", "open -a Hammerspoon")
+    else:
+        ok("Hammerspoon lancé")
+        code, out = hs_lua("return dictation and hs.json.encode(dictation.state()) or 'absent'")
+        if code != 0 or out == "absent":
+            bad(f"module de dictée non chargé ({out[:120]})", "scripts/install.sh puis Hammerspoon ▸ Reload Config")
+        else:
+            st = json.loads(out)
+            (ok if st["accessibility"] else bad)(
+                "Accessibilité accordée à Hammerspoon" if st["accessibility"] else "Accessibilité refusée",
+                "" if st["accessibility"] else "Réglages ▸ Confidentialité et sécurité ▸ Accessibilité ▸ Hammerspoon")
+        code, out = hs_lua('return hs.autoLaunch() and "oui" or "non"')
+        (ok if out == "oui" else warn)(f"Hammerspoon au démarrage de session : {out}")
+        for name in ("dictate", "dictate_and_enter"):
+            hk = cfg["hotkeys_parsed"][name]
+            lua = f"return hs.inspect(hs.hotkey.systemAssigned({json.dumps(hk['mods']).replace('[', '{').replace(']', '}')}, '{hk['key']}'))"
+            code, out = hs_lua(lua)
+            if out in ("nil", "false"):
+                ok(f"raccourci {cfg['hotkeys'][name]} libre côté macOS")
+            else:
+                bad(f"raccourci {cfg['hotkeys'][name]} déjà pris par macOS : {out}",
+                    "Réglages ▸ Clavier ▸ Raccourcis clavier, ou changez [hotkeys] dans config.toml")
+        # Micro : enregistrement de 0,6 s *par Hammerspoon* (c'est lui qui doit avoir l'autorisation).
+        wav = Path(tempfile.gettempdir()) / "dictation-doctor.wav"
+        wav.unlink(missing_ok=True)
+        rec = cfg["recording"]["rec_binary"]
+        hs_lua(f'return hs.execute("{rec} -q -c 1 -r 16000 -b 16 {wav} trim 0 0.6")')
+        if not wav.exists():
+            bad("le micro n'a rien enregistré", "vérifiez le périphérique d'entrée (Réglages ▸ Son ▸ Entrée)")
+        else:
+            from dictate.audio import analyze_wav
+            info = analyze_wav(wav)
+            if info.peak_dbfs <= -100:
+                bad("micro : silence numérique pur → autorisation Micro refusée à Hammerspoon",
+                    "Réglages ▸ Confidentialité et sécurité ▸ Micro ▸ Hammerspoon")
+            else:
+                ok(f"micro accessible à Hammerspoon (niveau ambiant {info.rms_dbfs:.0f} dBFS)")
+            wav.unlink(missing_ok=True)
+
+    section("Mémoire")
+    total = 0.0
+    for name, pattern in [("whisper-server", "bin/whisper-server"), ("ollama (serveur + modèle)", "ollama")]:
+        code, out = sh("pgrep", "-f", pattern)
+        mb = sum(filter(None, (resident_mb(pid) for pid in out.split()))) if code == 0 else 0
+        total += mb
+        print(f"  {name:28s} {mb:7.0f} Mo")
+    print(f"  {'total (RSS)':28s} {total:7.0f} Mo")
+    code, out = sh("memory_pressure")
+    m = re.search(r"free percentage: (\d+)%", out)
+    if m:
+        (ok if int(m.group(1)) >= 20 else warn)(f"mémoire libre système : {m.group(1)} %")
+
+    if not no_latency:
+        section("Latence (échantillon synthétique, ~6 s de parole)")
+        with tempfile.TemporaryDirectory() as tmp:
+            wav = Path(tmp) / "sample.wav"
+            subprocess.run(["say", "-v", "Thomas", "-o", str(wav), "--file-format=WAVE", "--data-format=LEI16@16000",
+                            "Dans Claude Code, écris une fonction TypeScript qui parse le JSON renvoyé par l'API."],
+                           check=True)
+            cfg["recording"]["keep_audio"] = 0
+            cfg["paths"]["data_dir"] = tmp  # ne pollue pas l'historique
+            from dictate.pipeline import run
+            res = run(wav, cfg)
+            t = res["timings_ms"]
+            if res["status"] != "ok":
+                bad(f"pipeline : {res['status']} {res.get('error', '')}")
+            else:
+                msg = (f"total {t['total']:.0f} ms (whisper {t.get('whisper', 0):.0f}, nettoyage {t.get('cleanup', 0):.0f}"
+                       f" [{res.get('cleanup_status')}]) → {res['text'].strip()!r}")
+                (ok if t["total"] < 2000 else warn)(msg)
+
+    print()
+    if failures:
+        print(f"{RED}{failures} problème(s) détecté(s).{RESET}")
+        return 1
+    print(f"{GREEN}Tout va bien.{RESET}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

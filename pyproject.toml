@@ -1,0 +1,16 @@
+[project]
+name = "voice-dictation"
+version = "0.1.0"
+description = "Dictée vocale push-to-talk 100 % locale pour macOS"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: nécessite whisper-server et/ou Ollama lancés localement",
+]
+addopts = "-m 'not integration'"

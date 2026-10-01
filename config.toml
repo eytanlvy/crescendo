@@ -1,0 +1,55 @@
+# Configuration de la dictée vocale. Toute clé absente prend sa valeur par défaut (dictate/config.py).
+# Après modification : recharger Hammerspoon (menu ▸ Reload Config) — sauf [whisper] model/threads,
+# qui demandent `scripts/install.sh` (régénère le LaunchAgent du serveur Whisper).
+# Vérifier : bin/doctor
+
+[hotkeys]
+# Modificateurs : cmd, alt (option), ctrl, shift. Touches : a-z, 0-9, space, f1-f20, return…
+dictate = "alt+space"                 # maintenir = dicter, relâcher = insérer
+dictate_and_enter = "alt+shift+space" # idem, puis Entrée (envoie le prompt)
+
+[recording]
+min_duration_s = 0.3      # appui plus court = ignoré
+max_duration_s = 120      # arrêt et transcription automatiques au-delà
+tail_ms = 150             # l'enregistrement continue un instant après le relâchement (dernier mot)
+speech_threshold_dbfs = -42.0 # trame de 30 ms au-dessus de ce niveau = « parole »
+min_speech_s = 0.15        # moins de parole que ça : silence, Whisper n'est pas appelé (évite les hallucinations)
+keep_audio = 50           # nombre de wav récents conservés dans data_dir/audio (0 = aucun)
+
+[whisper]
+url = "http://127.0.0.1:8178"
+model = "~/.local/share/voice-dictation/models/ggml-large-v3-turbo-q8_0.bin"
+language = "fr"           # "fr" (mesuré : meilleur et 2× plus rapide que "auto", même sur l'anglais), "en" ou "auto"
+threads = 4
+timeout_s = 20.0
+use_vocabulary_prompt = true
+
+[cleanup]
+enabled = true
+mode = "always"           # "always" ; "auto" = LLM seulement si hésitations/répétitions/ponctuation absente (−650 ms)
+url = "http://127.0.0.1:11434"
+model = "qwen2.5:3b-instruct"
+timeout_s = 4.0           # au-delà, le texte brut est inséré…
+timeout_per_kchar_s = 4.0 # …délai augmenté de 4 s par tranche de 1000 caractères (longues dictées)
+min_words = 4             # en dessous, pas de nettoyage LLM (inutile et plus lent)
+max_length_ratio = 1.4    # garde-fou : sortie > 1,4 × entrée → texte brut
+min_word_overlap = 0.8    # garde-fou : > 20 % de mots nouveaux (réponse, traduction) → texte brut
+
+[output]
+trailing_space = true     # ajoute une espace finale (dictées successives), sauf en mode Entrée
+auto_case_terms = true    # « github » → « GitHub » pour les termes du vocabulaire qui ont des majuscules
+restore_clipboard_delay_ms = 400
+enter_delay_ms = 120
+
+[feedback]
+sounds = true
+sound_start = "Tink"      # sons système : /System/Library/Sounds
+sound_stop = "Pop"
+sound_error = "Basso"
+volume = 0.25
+overlay = true
+
+[paths]
+data_dir = "~/.local/share/voice-dictation"  # historique, audio, logs
+vocabulary = "vocabulary.txt"                # relatif à ce fichier
+python = "/opt/homebrew/bin/python3"

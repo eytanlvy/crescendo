@@ -1,0 +1,55 @@
+# Dictation vocabulary — EXAMPLE. Copy it to `vocabulary.txt` (git-ignored) and make it yours:
+#   cp vocabulary.example.txt vocabulary.txt      (scripts/install.sh does this for you)
+# vocabulary.txt is re-read on every dictation: no restart needed.
+#
+# 1) TERMS — one per line. They are sent to Whisper as its initial prompt (in this order, up to ~224 tokens:
+#    put the most important first) and terms containing a capital letter also fix casing (github → GitHub).
+#    Add your project names, people, tools, libraries, acronyms: anything Whisper keeps getting wrong.
+# 2) REPLACEMENTS — "heard => written", applied last, case-insensitive, whole words only.
+#    Check `bin/dictate history -v` for recurring mistakes and add them here.
+
+Claude
+Claude Code
+Codex
+Anthropic
+OpenAI
+ChatGPT
+Whisper
+Ollama
+Hammerspoon
+GitHub
+pull request
+commit
+push
+merge
+rebase
+refactor
+pytest
+Python
+TypeScript
+JavaScript
+Lua
+JSON
+YAML
+API
+CLI
+LLM
+prompt
+Docker
+Kubernetes
+PostgreSQL
+VS Code
+Slack
+
+# Replacements
+cloud code => Claude Code
+clod code => Claude Code
+code ex => Codex
+type script => TypeScript
+hammer spoon => Hammerspoon
+o lama => Ollama
+vs code => VS Code
+visual studio code => VS Code
+git hub => GitHub
+py test => pytest
+post gres => PostgreSQL

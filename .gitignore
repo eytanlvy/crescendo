@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.brew-install.log
+bench/samples/
+bench/results/
+*.wav
+# Vocabulaire personnel (noms de projets, collègues…) : jamais versionné. Voir vocabulary.example.txt.
+vocabulary.txt
+bench/real/

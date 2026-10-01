@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>Dictée — page de test</title>
+<body style="font:16px system-ui;padding:24px;max-width:900px">
+<h2>Page de test de la dictée</h2>
+<p>Le champ ci-dessous reçoit la dictée. Sous le champ : chaque caractère « spécial » détecté
+(espace insécable, etc.) et chaque appui sur Entrée.</p>
+<textarea id="t" autofocus rows="10" style="width:100%;font-size:16px"></textarea>
+<pre id="diag" style="background:#f4f4f4;padding:10px;white-space:pre-wrap"></pre>
+<script>
+const t = document.getElementById('t'), d = document.getElementById('diag');
+let enters = 0;
+function show() {
+  const special = [...t.value].filter(c => /[   -​]/.test(c))
+    .map(c => 'U+' + c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0'));
+  d.textContent = `caractères : ${t.value.length}\nespaces spéciaux : ${special.length ? special.join(' ') : 'aucun ✔'}\nEntrée : ${enters}`;
+}
+t.addEventListener('input', show);
+t.addEventListener('keydown', e => { if (e.key === 'Enter') { enters++; setTimeout(show); } });
+show();
+</script>
