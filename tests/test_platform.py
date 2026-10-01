@@ -13,7 +13,7 @@ from dictate.config import platform_defaults
 REPO = Path(__file__).resolve().parent.parent
 
 
-@pytest.mark.parametrize("platform", ["darwin", "linux", "win32"])
+@pytest.mark.parametrize("platform", ["darwin", "linux"])
 def test_platform_defaults_are_complete(platform):
     d = platform_defaults(platform)
     assert d["paths"]["python"] and d["recording"]["rec_binary"] and d["paths"]["data_dir"]
@@ -21,11 +21,9 @@ def test_platform_defaults_are_complete(platform):
 
 
 def test_platform_defaults_differ_where_needed():
-    mac, linux, win = (platform_defaults(p) for p in ("darwin", "linux", "win32"))
+    mac, linux = (platform_defaults(p) for p in ("darwin", "linux"))
     assert mac["recording"]["rec_binary"] == "/opt/homebrew/bin/rec"
     assert linux["recording"]["rec_binary"] == "arecord"
-    assert win["recording"]["rec_binary"] == "sox"
-    assert "AppData" in win["paths"]["data_dir"] or "LOCALAPPDATA" in win["paths"]["data_dir"]
 
 
 def test_raw_pcm_is_wrapped_into_wav(tmp_path):

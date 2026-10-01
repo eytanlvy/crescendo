@@ -130,7 +130,7 @@ def cmd_history(cfg: dict, args) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    for stream in (sys.stdout, sys.stderr):  # Windows : la console n'est pas en UTF-8 par défaut
+    for stream in (sys.stdout, sys.stderr):  # locale C/POSIX : la sortie n'est pas en UTF-8 par défaut
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
     common = argparse.ArgumentParser(add_help=False)

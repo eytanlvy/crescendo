@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -31,18 +31,6 @@ jobs:
           openbox & sleep 1
           tests/manual/linux_x11_paste.sh
 
-  windows-ahk-syntax:
-    runs-on: windows-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - run: choco install autohotkey -y --no-progress
-      - name: Validation de la syntaxe AutoHotkey v2
-        shell: pwsh
-        run: |
-          $ahk = Get-ChildItem "C:\Program Files\AutoHotkey" -Recurse -Filter AutoHotkey64.exe | Where-Object FullName -like "*v2*" | Select-Object -First 1
-          & $ahk.FullName /ErrorStdOut /Validate frontends\windows\dictation.ahk 2>&1 | Tee-Object -Variable out
-          if ($LASTEXITCODE -ne 0) { exit 1 }
 
   linux-install:
     runs-on: ubuntu-latest

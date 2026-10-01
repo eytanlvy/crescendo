@@ -5,7 +5,6 @@ import copy
 import tomllib
 from pathlib import Path
 
-import os
 import sys
 
 REPO_DIR = Path(__file__).resolve().parent.parent
@@ -82,12 +81,6 @@ def platform_defaults(platform: str = sys.platform) -> dict:
     if platform.startswith("linux"):
         d["recording"]["rec_binary"] = "arecord"
         d["paths"]["python"] = "/usr/bin/python3"
-    elif platform == "win32":
-        data = (os.environ.get("LOCALAPPDATA") or "~/AppData/Local") + "/voice-dictation"
-        d["recording"]["rec_binary"] = "sox"
-        d["paths"]["python"] = "python"
-        d["paths"]["data_dir"] = data
-        d["whisper"]["model"] = data + "/models/ggml-large-v3-turbo-q8_0.bin"
     return d
 
 

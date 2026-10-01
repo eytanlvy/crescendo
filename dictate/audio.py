@@ -61,7 +61,7 @@ RAW_SUFFIXES = {".pcm", ".raw"}
 
 def ensure_wav(path: Path | str, rate: int = 16000) -> Path:
     """Enveloppe un enregistrement PCM brut (s16le mono) dans un wav. Les enregistreurs tués brutalement
-    (Windows, Linux) ne finalisent pas l'en-tête wav : le PCM brut reste toujours lisible."""
+    (arecord sous Linux) ne finalisent pas l'en-tête wav : le PCM brut reste toujours lisible."""
     path = Path(path)
     if path.suffix.lower() not in RAW_SUFFIXES:
         return path

@@ -6,7 +6,7 @@ Push-to-talk dictation for macOS. 100 % local. Types into any app.
 - Hold **⌥⇧Space** → same, then **Enter**.
 - Works in terminals, Claude Code, Codex, VS Code, Slack, browsers, any text field.
 
-> **Platforms:** macOS on Apple Silicon (supported). Linux and Windows (experimental, see [below](#linux-and-windows-experimental)).
+> **Platforms:** macOS on Apple Silicon (supported), Linux (experimental, see [below](#linux-experimental)).
 
 ## Features
 
@@ -167,13 +167,11 @@ scripts/uninstall.sh --brew   # + Homebrew packages and Ollama models
 - Then remove Hammerspoon from Privacy & Security and Login Items.
 - Then delete the repository folder.
 
-## Linux and Windows (experimental)
+## Linux (experimental)
 
-- Same pipeline, native frontend per OS.
+- Same pipeline, Python daemon as frontend.
 - Tested in CI only, not yet on real desktops. Feedback welcome.
-- Full guide: [docs/linux-windows.md](docs/linux-windows.md).
-
-**Linux**
+- Full guide: [docs/linux.md](docs/linux.md).
 
 ```sh
 git clone https://github.com/eytanlvy/crescendo.git
@@ -196,16 +194,6 @@ Usage and options:
 - Other desktops: bind `python3 frontends/linux/dictation_daemon.py ctl toggle` to a shortcut.
 - Terminals are detected and pasted into with Ctrl+Shift+V.
 - Uninstall: `scripts/uninstall-linux.sh`.
-
-**Windows**
-
-- Run [whisper.cpp](https://github.com/ggml-org/whisper.cpp)'s `whisper-server` on port 8178.
-- Install [Ollama](https://ollama.com), then `ollama pull qwen2.5:3b-instruct`.
-- `copy vocabulary.example.txt vocabulary.txt`.
-- Install Python 3.11+, [AutoHotkey v2](https://www.autohotkey.com) and [sox](https://sourceforge.net/projects/sox/) (in `PATH`).
-- Start: double-click `frontends\windows\dictation.ahk`.
-- Hold **Alt+Space**, speak, release. **Alt+Shift+Space** adds Enter. **Esc** cancels.
-- Start at login: put a shortcut to the script in `shell:startup`.
 
 ## How it works
 
