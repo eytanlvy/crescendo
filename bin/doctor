@@ -158,6 +158,11 @@ def main():
         wav = Path(tempfile.gettempdir()) / "dictation-doctor.wav"
         wav.unlink(missing_ok=True)
         code, out = hs_lua(f"return dictation and dictation.diagnostics('{wav}') or 'absent'")
+        mic_info = None
+        if wav.exists():
+            from dictate.audio import analyze_wav
+            mic_info = analyze_wav(wav)
+        wav.unlink(missing_ok=True)  # aucun enregistrement ne reste sur le disque, même en cas d'échec
         try:
             d = json.loads(out)
         except json.JSONDecodeError:
@@ -179,17 +184,13 @@ def main():
                 else:
                     bad(f"raccourci {cfg['hotkeys'][name]} déjà pris par macOS",
                         "Réglages ▸ Clavier ▸ Raccourcis clavier, ou changez [hotkeys] dans config.toml")
-            if not wav.exists():
+            if mic_info is None:
                 bad("le micro n'a rien enregistré", "vérifiez le périphérique d'entrée (Réglages ▸ Son ▸ Entrée)")
+            elif mic_info.peak_dbfs <= -100:
+                bad("micro : silence numérique pur → autorisation Micro refusée à Hammerspoon",
+                    "Réglages ▸ Confidentialité et sécurité ▸ Micro ▸ Hammerspoon")
             else:
-                from dictate.audio import analyze_wav
-                info = analyze_wav(wav)
-                if info.peak_dbfs <= -100:
-                    bad("micro : silence numérique pur → autorisation Micro refusée à Hammerspoon",
-                        "Réglages ▸ Confidentialité et sécurité ▸ Micro ▸ Hammerspoon")
-                else:
-                    ok(f"micro accessible à Hammerspoon (niveau ambiant {info.rms_dbfs:.0f} dBFS)")
-                wav.unlink(missing_ok=True)
+                ok(f"micro accessible à Hammerspoon (niveau ambiant {mic_info.rms_dbfs:.0f} dBFS)")
 
     section("Mémoire")
     total = 0.0

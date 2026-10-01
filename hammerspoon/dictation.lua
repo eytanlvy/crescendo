@@ -330,6 +330,8 @@ function M.start()
   os.execute("mkdir -p '" .. cfg.paths.data_dir .. "'")
   -- Enregistrements orphelins d'une instance précédente (plantage, arrêt brutal) : ils garderaient le micro ouvert.
   hs.execute("/usr/bin/pkill -9 -f 'rec -q -c 1 -r 16000 .*/dictation-[0-9]+\\.wav'")
+  -- …et leurs fichiers audio temporaires : aucun enregistrement ne doit rester sur le disque.
+  hs.execute("/bin/rm -f \"$TMPDIR\"/dictation-*.wav")
 
   for name, mode in pairs({dictate = "insert", dictate_and_enter = "enter"}) do
     local hk = cfg.hotkeys_parsed[name]
