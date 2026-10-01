@@ -5,6 +5,9 @@ import copy
 import tomllib
 from pathlib import Path
 
+import os
+import sys
+
 REPO_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG_PATH = REPO_DIR / "config.toml"
 
@@ -73,6 +76,21 @@ MODIFIER_ORDER = ["cmd", "alt", "ctrl", "shift"]
 LANGUAGES = {"auto", "fr", "en", "de", "es", "it", "pt", "nl", "he", "ar", "ja", "zh", "ru"}
 
 
+def platform_defaults(platform: str = sys.platform) -> dict:
+    """DEFAULTS adaptées au système : emplacements des binaires et des données."""
+    d = copy.deepcopy(DEFAULTS)
+    if platform.startswith("linux"):
+        d["recording"]["rec_binary"] = "arecord"
+        d["paths"]["python"] = "/usr/bin/python3"
+    elif platform == "win32":
+        data = (os.environ.get("LOCALAPPDATA") or "~/AppData/Local") + "/voice-dictation"
+        d["recording"]["rec_binary"] = "sox"
+        d["paths"]["python"] = "python"
+        d["paths"]["data_dir"] = data
+        d["whisper"]["model"] = data + "/models/ggml-large-v3-turbo-q8_0.bin"
+    return d
+
+
 class ConfigError(Exception):
     pass
 
@@ -128,7 +146,7 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH) -> dict:
         raise ConfigError(f"{path}: fichier introuvable") from None
     except tomllib.TOMLDecodeError as e:
         raise ConfigError(f"{path}: TOML invalide ({e})") from None
-    cfg = _merge(DEFAULTS, user, path)
+    cfg = _merge(platform_defaults(), user, path)
 
     for name in ("dictate", "dictate_and_enter"):
         try:
@@ -140,12 +158,14 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH) -> dict:
     if cfg["whisper"]["language"] not in LANGUAGES:
         raise ConfigError(f"{path}: whisper.language doit être l'un de {sorted(LANGUAGES)}")
 
-    for key in ("data_dir", "python"):
-        cfg["paths"][key] = str(Path(cfg["paths"][key]).expanduser())
+    cfg["paths"]["data_dir"] = str(Path(cfg["paths"]["data_dir"]).expanduser())
+    if "/" in cfg["paths"]["python"]:
+        cfg["paths"]["python"] = str(Path(cfg["paths"]["python"]).expanduser())
     vocab = Path(cfg["paths"]["vocabulary"]).expanduser()
     cfg["paths"]["vocabulary"] = str(vocab if vocab.is_absolute() else path.parent / vocab)
     cfg["whisper"]["model"] = str(Path(cfg["whisper"]["model"]).expanduser())
-    cfg["recording"]["rec_binary"] = str(Path(cfg["recording"]["rec_binary"]).expanduser())
+    rec = cfg["recording"]["rec_binary"]
+    cfg["recording"]["rec_binary"] = str(Path(rec).expanduser()) if ("/" in rec or "\\" in rec) else rec
     cfg["hotkeys_parsed"] = {k: parse_hotkey(v) for k, v in cfg["hotkeys"].items()}
     cfg["repo_dir"] = str(REPO_DIR)
     return cfg

@@ -1,6 +1,6 @@
 """Interface en ligne de commande.
 
-  dictate FICHIER.wav [--json] [--mode insert|enter] [--app ID] [--rec-window-ms N]
+  dictate FICHIER.wav|.pcm [--json] [--text-out F] [--mode insert|enter] [--app ID] [--rec-window-ms N]
   dictate config --json          configuration résolue (lue par Hammerspoon)
   dictate warmup [--wait S]      charge les modèles (Whisper, Ollama) ; attend les services jusqu'à S secondes
   dictate history [-n N] [--stats]
@@ -32,6 +32,8 @@ def _print_json(obj) -> None:
 def cmd_transcribe(cfg: dict, args) -> int:
     from .pipeline import run
     res = run(args.wav, cfg, mode=args.mode, app=args.app, rec_window_ms=args.rec_window_ms)
+    if args.text_out:
+        Path(args.text_out).write_text(res["text"], encoding="utf-8")
     if args.json:
         _print_json(res)
     else:
@@ -128,6 +130,9 @@ def cmd_history(cfg: dict, args) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    for stream in (sys.stdout, sys.stderr):  # Windows : la console n'est pas en UTF-8 par défaut
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--config", default=os.environ.get("DICTATE_CONFIG", str(DEFAULT_CONFIG_PATH)))
     pre, rest = common.parse_known_args(argv)
@@ -137,6 +142,7 @@ def main(argv: list[str] | None = None) -> int:
         sub = ap.add_subparsers(dest="cmd", required=True)
         p = sub.add_parser("config")
         p.add_argument("--json", action="store_true")
+        p.add_argument("--get", metavar="SECTION.CLÉ")
         p = sub.add_parser("warmup")
         p.add_argument("--wait", type=float, default=0.0)
         p = sub.add_parser("history")
@@ -150,6 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         ap.add_argument("--mode", choices=["insert", "enter"], default="insert")
         ap.add_argument("--app")
         ap.add_argument("--rec-window-ms", type=float)
+        ap.add_argument("--text-out", metavar="FICHIER", help="écrit le texte final (UTF-8) dans FICHIER")
     args = ap.parse_args(argv)
 
     try:
@@ -163,7 +170,16 @@ def main(argv: list[str] | None = None) -> int:
 
     cmd = getattr(args, "cmd", None)
     if cmd == "config":
-        _print_json(cfg)
+        if args.get:
+            value = cfg
+            for part in args.get.split("."):
+                if not isinstance(value, dict) or part not in value:
+                    print(f"clé inconnue : {args.get}", file=sys.stderr)
+                    return EXIT_CONFIG
+                value = value[part]
+            print(json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list, bool)) else value)
+        else:
+            _print_json(cfg)
         return EXIT_OK
     if cmd == "warmup":
         return cmd_warmup(cfg, args)

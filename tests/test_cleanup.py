@@ -119,7 +119,7 @@ def test_cleanup_timeout_returns_raw(fake_server):
 
 
 def test_cleanup_service_down_returns_raw(dead_url):
-    res = cleanup("une phrase assez longue pour le nettoyage", {**CFG, "url": dead_url})
+    res = cleanup("une phrase assez longue pour le nettoyage", {**CFG, "url": dead_url, "timeout_s": 5.0})
     assert res.text == "une phrase assez longue pour le nettoyage"
     assert res.status == "down"
 

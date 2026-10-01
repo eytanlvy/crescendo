@@ -16,7 +16,7 @@ def dictate(*args, config=None):
     cmd = [sys.executable, str(BIN), *args]
     if config:
         cmd[2:2] = ["--config", str(config)]
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    return subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=30)
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def setup(tmp_path):
     (tmp_path / "vocabulary.txt").write_text("GitHub\n")
     conf = tmp_path / "config.toml"
     conf.write_text(f'[whisper]\nurl = "{whisper.url}"\n[cleanup]\nurl = "{ollama.url}"\n'
-                    f'[paths]\ndata_dir = "{tmp_path / "data"}"\n')
+                    f"[paths]\ndata_dir = '{tmp_path / 'data'}'\n")
     wav = make_wav(tmp_path / "a.wav", [(1.0, 0.3)])
     yield conf, wav, whisper, ollama
     whisper.close()
@@ -86,3 +86,22 @@ def test_history_stats(setup):
     assert "whisper" in out.stdout and "p50" in out.stdout
     out = dictate("history", "-n", "2", config=conf)
     assert out.stdout.count("Oui.") == 2
+
+
+def test_text_out_writes_final_text_utf8(setup, tmp_path):
+    conf, wav, whisper, ollama = setup
+    whisper.response = {"text": " Déploie ça sur github, s'il te plaît."}
+    ollama.response = {"message": {"content": "Déploie ça sur github, s'il te plaît."}}
+    out_file = tmp_path / "out.txt"
+    out = dictate(str(wav), "--text-out", str(out_file), "--mode", "enter", config=conf)
+    assert out.returncode == 0, out.stderr
+    assert out_file.read_text(encoding="utf-8") == "Déploie ça sur GitHub, s'il te plaît."
+
+
+def test_text_out_empty_on_silence(setup, tmp_path):
+    conf, _, _, _ = setup
+    silent = make_wav(tmp_path / "s.wav", [(1.0, 0.0)])
+    out_file = tmp_path / "out.txt"
+    out = dictate(str(silent), "--text-out", str(out_file), config=conf)
+    assert out.returncode == 0
+    assert out_file.read_text(encoding="utf-8") == ""

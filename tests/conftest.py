@@ -58,7 +58,8 @@ def fake_server():
 
 @pytest.fixture
 def dead_url():
-    """URL d'un port local fermé (service down)."""
+    """URL d'un port local fermé (service down). Sous Windows, le refus n'arrive qu'après ~2 s : les tests
+    qui l'utilisent ont un délai d'au moins 5 s."""
     import socket
     sock = socket.socket()
     sock.bind(("127.0.0.1", 0))

@@ -33,7 +33,7 @@ def test_transcribe_service_down(dead_url, tmp_path):
     wav = tmp_path / "a.wav"
     wav.write_bytes(b"x")
     with pytest.raises(ServiceError) as e:
-        transcribe(wav, url=dead_url, language="fr", prompt="", timeout_s=2)
+        transcribe(wav, url=dead_url, language="fr", prompt="", timeout_s=5)
     assert e.value.service == "whisper"
     assert "injoignable" in str(e.value)
 

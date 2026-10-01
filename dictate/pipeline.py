@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from .audio import analyze_wav
+from .audio import analyze_wav, ensure_wav
 from .cleanup import cleanup
 from .filters import clean_transcript, normalize_text, remove_fillers
 from .services import ServiceError
@@ -53,7 +53,7 @@ def run(wav: Path | str, cfg: dict, mode: str = "insert", app: str | None = None
     """rec_window_ms : temps entre l'appui et l'arrêt de `rec` vu par Hammerspoon. La différence avec la
     durée réellement enregistrée mesure le délai de démarrage du micro (début de phrase perdu)."""
     t_start = time.perf_counter()
-    wav = Path(wav)
+    wav = ensure_wav(wav)
     rec_cfg, w_cfg = cfg["recording"], cfg["whisper"]
     data_dir = Path(cfg["paths"]["data_dir"])
     timings: dict[str, float] = {}
