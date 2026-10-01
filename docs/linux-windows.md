@@ -39,7 +39,7 @@ python3 frontends/linux/dictation_daemon.py run
 ```
 
 Then bind a desktop shortcut (GNOME: Settings ▸ Keyboard ▸ Custom Shortcuts) to
-`python3 /path/to/voice-dictation/frontends/linux/dictation_daemon.py ctl toggle` — press once to start, once more to
+`python3 /path/to/crescendo/frontends/linux/dictation_daemon.py ctl toggle` — press once to start, once more to
 stop and paste (`ctl toggle enter` to also press Enter).
 
 True hold-to-talk needs evdev (works on X11 and Wayland):
@@ -62,7 +62,7 @@ Description=voice-dictation frontend
 After=graphical-session.target
 
 [Service]
-ExecStart=/usr/bin/python3 %h/voice-dictation/frontends/linux/dictation_daemon.py run
+ExecStart=/usr/bin/python3 %h/crescendo/frontends/linux/dictation_daemon.py run
 Restart=on-failure
 
 [Install]
