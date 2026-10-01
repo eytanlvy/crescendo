@@ -24,7 +24,10 @@ s = open(p).read()
 s = re.sub(r"\n?-- >>> voice-dictation >>>.*?-- <<< voice-dictation <<<\n?", "\n", s, flags=re.S)
 open(p, "w").write(s.strip("\n") + ("\n" if s.strip() else ""))
 EOF
-  pgrep -xq Hammerspoon && perl -e 'alarm 8; exec @ARGV' /opt/homebrew/bin/hs -t 5 -c "hs.timer.doAfter(0.2, hs.reload)" >/dev/null 2>&1
+  if pgrep -xq Hammerspoon; then  # redémarrage (pas de rechargement via `hs` : voir install.sh)
+    pkill -x Hammerspoon; for _ in {1..50}; do pgrep -xq Hammerspoon || break; sleep 0.1; done
+    open -a Hammerspoon
+  fi
 fi
 
 step "Suppression des données (historique, audio, logs, modèles Whisper)"

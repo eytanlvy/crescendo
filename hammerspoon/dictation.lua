@@ -276,6 +276,15 @@ function M.stop()
     if r.task:isRunning() then
       r.task:setCallback(enqueue)
       r.task:interrupt()
+      -- rec peut rester figé (périphérique audio bloqué) et ignorer SIGINT : on le tue au bout de 2 s,
+      -- ce qui déclenche quand même enqueue avec ce qui a été enregistré.
+      local pid = r.task:pid()
+      hs.timer.doAfter(2, function()
+        if r.task:isRunning() then
+          log.w("rec ne répond pas à SIGINT, arrêt forcé")
+          hs.execute("/bin/kill -9 " .. pid)
+        end
+      end)
     else
       enqueue() -- rec déjà terminé (durée max atteinte)
     end
@@ -319,6 +328,8 @@ function M.start()
   end
   cfg = result
   os.execute("mkdir -p '" .. cfg.paths.data_dir .. "'")
+  -- Enregistrements orphelins d'une instance précédente (plantage, arrêt brutal) : ils garderaient le micro ouvert.
+  hs.execute("/usr/bin/pkill -9 -f 'rec -q -c 1 -r 16000 .*/dictation-[0-9]+\\.wav'")
 
   for name, mode in pairs({dictate = "insert", dictate_and_enter = "enter"}) do
     local hk = cfg.hotkeys_parsed[name]
@@ -354,6 +365,27 @@ M._start = function(mode) startRecording(mode or "insert") end
 M.state = function()
   return {recording = rec ~= nil, processing = processing ~= nil, queued = #queue,
           accessibility = hs.accessibilityState()}
+end
+
+-- Tout ce dont bin/doctor a besoin, en un seul appel IPC (l'IPC de Hammerspoon supporte mal les appels
+-- rapprochés). micWav : chemin où enregistrer 0,6 s pour tester l'autorisation Micro.
+M.diagnostics = function(micWav)
+  local d = M.state()
+  d.loaded = cfg ~= nil
+  d.autolaunch = hs.autoLaunch()
+  d.hotkeys = {}
+  if cfg then
+    for name, hk in pairs(cfg.hotkeys_parsed) do
+      d.hotkeys[name] = hs.hotkey.systemAssigned(hk.mods, hk.key) or false
+    end
+    if micWav then
+      -- hs.execute bloque le fil principal : si l'entrée audio est figée, rec attendrait indéfiniment et gèlerait
+      -- Hammerspoon (raccourcis compris). L'alarme le tue au bout de 3 s.
+      hs.execute(string.format("/usr/bin/perl -e 'alarm 3; exec @ARGV' '%s' -q -c 1 -r 16000 -b 16 '%s' trim 0 0.6",
+                               cfg.recording.rec_binary, micWav))
+    end
+  end
+  return hs.json.encode(d)
 end
 
 return M

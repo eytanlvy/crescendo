@@ -57,7 +57,9 @@ def http_json(url, payload=None, timeout=3):
 
 
 def hs_lua(code):
-    rc, out = sh("/opt/homebrew/bin/hs", "-t", "8", "-c", code, timeout=12)
+    # Ne jamais tuer `hs` en pleine requête : Hammerspoon planterait en répondant à un port mort.
+    # Le délai externe est donc nettement plus long que celui de `hs` (-t), qui abandonne seul.
+    rc, out = sh("/opt/homebrew/bin/hs", "-t", "10", "-c", code, timeout=60)
     # hs préfixe parfois la sortie de lignes « -- Loading extension: … »
     return rc, "\n".join(l for l in out.splitlines() if not l.startswith("-- ")).strip()
 
@@ -146,41 +148,48 @@ def main():
         bad("Hammerspoon n'est pas lancé", "open -a Hammerspoon")
     else:
         ok("Hammerspoon lancé")
-        code, out = hs_lua("return dictation and hs.json.encode(dictation.state()) or 'absent'")
-        if code != 0 or out == "absent":
-            bad(f"module de dictée non chargé ({out[:120]})", "scripts/install.sh puis Hammerspoon ▸ Reload Config")
-        else:
-            st = json.loads(out)
-            (ok if st["accessibility"] else bad)(
-                "Accessibilité accordée à Hammerspoon" if st["accessibility"] else "Accessibilité refusée",
-                "" if st["accessibility"] else "Réglages ▸ Confidentialité et sécurité ▸ Accessibilité ▸ Hammerspoon")
-        code, out = hs_lua('return hs.autoLaunch() and "oui" or "non"')
-        (ok if out == "oui" else warn)(f"Hammerspoon au démarrage de session : {out}")
-        for name in ("dictate", "dictate_and_enter"):
-            hk = cfg["hotkeys_parsed"][name]
-            lua = f"return hs.inspect(hs.hotkey.systemAssigned({json.dumps(hk['mods']).replace('[', '{').replace(']', '}')}, '{hk['key']}'))"
-            code, out = hs_lua(lua)
-            if out in ("nil", "false"):
-                ok(f"raccourci {cfg['hotkeys'][name]} libre côté macOS")
-            else:
-                bad(f"raccourci {cfg['hotkeys'][name]} déjà pris par macOS : {out}",
-                    "Réglages ▸ Clavier ▸ Raccourcis clavier, ou changez [hotkeys] dans config.toml")
-        # Micro : enregistrement de 0,6 s *par Hammerspoon* (c'est lui qui doit avoir l'autorisation).
+        # Juste après un (re)démarrage, l'IPC n'est pas prête : on attend 5 s de fonctionnement.
+        code, etime = sh("ps", "-o", "etime=", "-p", sh("pgrep", "-x", "Hammerspoon")[1].split()[0])
+        parts = [int(x) for x in re.split("[-:]", etime.strip())] if code == 0 else [99]
+        uptime = sum(v * m for v, m in zip(reversed(parts), (1, 60, 3600, 86400)))
+        if uptime < 5:
+            time.sleep(5 - uptime)
+        # Un seul appel IPC (les appels rapprochés font flancher l'IPC de Hammerspoon).
         wav = Path(tempfile.gettempdir()) / "dictation-doctor.wav"
         wav.unlink(missing_ok=True)
-        rec = cfg["recording"]["rec_binary"]
-        hs_lua(f'return hs.execute("{rec} -q -c 1 -r 16000 -b 16 {wav} trim 0 0.6")')
-        if not wav.exists():
-            bad("le micro n'a rien enregistré", "vérifiez le périphérique d'entrée (Réglages ▸ Son ▸ Entrée)")
+        code, out = hs_lua(f"return dictation and dictation.diagnostics('{wav}') or 'absent'")
+        try:
+            d = json.loads(out)
+        except json.JSONDecodeError:
+            d = None
+        if "timed out" in out or "timeout" in out:
+            bad("Hammerspoon ne répond pas à la CLI hs (IPC bloquée)",
+                "réessayez dans une minute ; si ça persiste : pkill -x Hammerspoon && open -a Hammerspoon")
+        elif code != 0 or d is None or not d.get("loaded"):
+            bad(f"module de dictée non chargé ({out[:120]})", "scripts/install.sh, ou redémarrez Hammerspoon")
         else:
-            from dictate.audio import analyze_wav
-            info = analyze_wav(wav)
-            if info.peak_dbfs <= -100:
-                bad("micro : silence numérique pur → autorisation Micro refusée à Hammerspoon",
-                    "Réglages ▸ Confidentialité et sécurité ▸ Micro ▸ Hammerspoon")
+            (ok if d["accessibility"] else bad)(
+                "Accessibilité accordée à Hammerspoon" if d["accessibility"] else "Accessibilité refusée",
+                "" if d["accessibility"] else "Réglages ▸ Confidentialité et sécurité ▸ Accessibilité ▸ Hammerspoon,"
+                                              " puis redémarrez Hammerspoon")
+            (ok if d["autolaunch"] else warn)(f"Hammerspoon au démarrage de session : {'oui' if d['autolaunch'] else 'non'}")
+            for name, assigned in sorted(d["hotkeys"].items()):
+                if assigned is False:
+                    ok(f"raccourci {cfg['hotkeys'][name]} libre côté macOS")
+                else:
+                    bad(f"raccourci {cfg['hotkeys'][name]} déjà pris par macOS",
+                        "Réglages ▸ Clavier ▸ Raccourcis clavier, ou changez [hotkeys] dans config.toml")
+            if not wav.exists():
+                bad("le micro n'a rien enregistré", "vérifiez le périphérique d'entrée (Réglages ▸ Son ▸ Entrée)")
             else:
-                ok(f"micro accessible à Hammerspoon (niveau ambiant {info.rms_dbfs:.0f} dBFS)")
-            wav.unlink(missing_ok=True)
+                from dictate.audio import analyze_wav
+                info = analyze_wav(wav)
+                if info.peak_dbfs <= -100:
+                    bad("micro : silence numérique pur → autorisation Micro refusée à Hammerspoon",
+                        "Réglages ▸ Confidentialité et sécurité ▸ Micro ▸ Hammerspoon")
+                else:
+                    ok(f"micro accessible à Hammerspoon (niveau ambiant {info.rms_dbfs:.0f} dBFS)")
+                wav.unlink(missing_ok=True)
 
     section("Mémoire")
     total = 0.0

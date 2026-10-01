@@ -112,12 +112,9 @@ dictation = dofile("$REPO/hammerspoon/dictation.lua").start()
 EOF
 defaults write org.hammerspoon.Hammerspoon MJShowDockIconKey -bool false
 defaults write org.hammerspoon.Hammerspoon HSUploadCrashData -bool false
-if pgrep -xq Hammerspoon; then
-  if ! perl -e 'alarm 8; exec @ARGV' /opt/homebrew/bin/hs -t 5 -c "hs.timer.doAfter(0.2, hs.reload)" >/dev/null 2>&1; then
-    osascript -e 'tell application "Hammerspoon" to quit'; sleep 1; open -a Hammerspoon
-  fi
-else
-  open -a Hammerspoon
-fi
+# Redémarrage plutôt que rechargement via `hs` : interrompre une requête IPC en cours fait planter
+# Hammerspoon (hs.ipc répond alors à un port mort).
+pkill -x Hammerspoon 2>/dev/null && for _ in {1..50}; do pgrep -xq Hammerspoon || break; sleep 0.1; done
+open -a Hammerspoon
 
 step "Terminé. Vérification : $REPO/bin/doctor"
