@@ -54,3 +54,22 @@ def analyze_wav(path: Path | str, speech_threshold_dbfs: float = -42.0) -> WavIn
         peak_dbfs=_dbfs(peak / 32768),
         speech_s=speech_frames / rate,
     )
+
+
+RAW_SUFFIXES = {".pcm", ".raw"}
+
+
+def ensure_wav(path: Path | str, rate: int = 16000) -> Path:
+    """Enveloppe un enregistrement PCM brut (s16le mono) dans un wav. Les enregistreurs tués brutalement
+    (Windows, Linux) ne finalisent pas l'en-tête wav : le PCM brut reste toujours lisible."""
+    path = Path(path)
+    if path.suffix.lower() not in RAW_SUFFIXES:
+        return path
+    wav = path.with_suffix(".wav")
+    with wave.open(str(wav), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        data = path.read_bytes()
+        w.writeframes(data[:len(data) - len(data) % 2])
+    return wav

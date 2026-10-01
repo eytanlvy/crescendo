@@ -12,7 +12,8 @@ Built for developers who dictate prompts in a mix of languages (it was tuned on 
 technical terms), it is deliberately small: a thin [Hammerspoon](https://www.hammerspoon.org) script for the hotkey,
 UI and pasting, and a dependency-free Python pipeline you can run and test from the command line.
 
-> **Platform:** macOS on Apple Silicon only (tested on an M2 Pro, macOS 26). Linux and Windows are not supported yet.
+> **Platform:** macOS on Apple Silicon (tested on an M2 Pro, macOS 26). Linux and Windows frontends are
+> **experimental** — see [docs/linux-windows.md](docs/linux-windows.md).
 
 ## Highlights
 

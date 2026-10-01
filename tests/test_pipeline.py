@@ -29,7 +29,7 @@ url = "{whisper.url}"
 url = "{ollama.url}"
 timeout_s = 2.0
 [paths]
-data_dir = "{tmp_path / 'data'}"
+data_dir = '{tmp_path / "data"}'
 vocabulary = "vocabulary.txt"
 """)
     return load_config(conf)

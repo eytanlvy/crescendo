@@ -7,12 +7,36 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install pytest
       - run: python -m pytest -q
+
+  linux-x11-paste:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get update -q && sudo apt-get install -yq xvfb openbox xterm xclip xdotool
+      - name: Insertion réelle dans un xterm (Xvfb + openbox)
+        run: |
+          Xvfb :99 -screen 0 1280x800x24 & sleep 1
+          export DISPLAY=:99
+          openbox & sleep 1
+          tests/manual/linux_x11_paste.sh
+
+  windows-ahk-syntax:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: choco install autohotkey -y --no-progress
+      - name: Validation de la syntaxe AutoHotkey v2
+        shell: pwsh
+        run: |
+          $ahk = Get-ChildItem "C:\Program Files\AutoHotkey" -Recurse -Filter AutoHotkey64.exe | Where-Object FullName -like "*v2*" | Select-Object -First 1
+          & $ahk.FullName /ErrorStdOut /Validate frontends\windows\dictation.ahk 2>&1 | Tee-Object -Variable out
+          if ($LASTEXITCODE -ne 0) { exit 1 }
