@@ -1,4 +1,4 @@
-# voice-dictation
+# crescendo
 
 Push-to-talk dictation for macOS. 100 % local. Types into any app.
 
@@ -28,8 +28,8 @@ Push-to-talk dictation for macOS. 100 % local. Types into any app.
 ## Install
 
 ```sh
-git clone https://github.com/eytanlvy/voice-dictation.git
-cd voice-dictation
+git clone https://github.com/eytanlvy/crescendo.git
+cd crescendo
 scripts/install.sh
 ```
 
