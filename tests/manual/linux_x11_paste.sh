@@ -26,8 +26,11 @@ assert d.paste_keys(cls) == "ctrl+shift+v", "xterm doit être reconnu comme term
 p("Déploie ça sur GitHub, s'il te plaît.", True)
 PY
 sleep 0.5
-xdotool key --window "$WID" ctrl+d
-for _ in $(seq 1 25); do kill -0 $XTERM 2>/dev/null || break; sleep 0.2; done
+echo "après collage : xterm $(kill -0 $XTERM 2>/dev/null && echo vivant || echo terminé), fichier = $(cat "$OUT")"
+if kill -0 $XTERM 2>/dev/null; then
+  xdotool key ctrl+d || true
+  for _ in $(seq 1 25); do kill -0 $XTERM 2>/dev/null || break; sleep 0.2; done
+fi
 echo "fichier : $(cat "$OUT")"
 echo "presse-papiers : $(xclip -selection clipboard -o)"
 grep -qx "Déploie ça sur GitHub, s'il te plaît." "$OUT"
