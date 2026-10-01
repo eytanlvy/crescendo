@@ -173,23 +173,35 @@ scripts/uninstall.sh --brew   # + Homebrew packages and Ollama models
 - Tested in CI only, not yet on real desktops. Feedback welcome.
 - Full guide: [docs/linux-windows.md](docs/linux-windows.md).
 
-**Both**
-
-- Run [whisper.cpp](https://github.com/ggml-org/whisper.cpp)'s `whisper-server` on port 8178.
-- Install [Ollama](https://ollama.com), then `ollama pull qwen2.5:3b-instruct`.
-- `cp vocabulary.example.txt vocabulary.txt`.
-
 **Linux**
 
-- Install `alsa-utils` and `xclip xdotool x11-utils` (X11) or `wl-clipboard ydotool` (Wayland).
-- Start the daemon: `python3 frontends/linux/dictation_daemon.py run`.
-- Toggle mode: bind a desktop shortcut to `python3 frontends/linux/dictation_daemon.py ctl toggle`.
-  Press once to record, again to paste.
-- Hold mode: add `--hold-key KEY_RIGHTCTRL` (needs `python3-evdev` and the `input` group).
+```sh
+git clone https://github.com/eytanlvy/crescendo.git
+cd crescendo
+scripts/install-linux.sh
+```
+
+The installer:
+
+- installs packages (apt, dnf or pacman; X11 or Wayland tools);
+- builds whisper.cpp (CUDA if available) and downloads the model (`large-v3-turbo` with CUDA, `small` otherwise);
+- installs Ollama and the cleanup model;
+- creates systemd user services (start at login);
+- adds GNOME shortcuts: **Ctrl+Alt+Space** to dictate, **Ctrl+Shift+Alt+Space** to dictate + Enter.
+
+Usage and options:
+
+- Toggle mode: press the shortcut to record, press again to paste.
+- Hold-to-talk instead: `scripts/install-linux.sh --hold-key KEY_RIGHTCTRL` (re-login required).
+- Other desktops: bind `python3 frontends/linux/dictation_daemon.py ctl toggle` to a shortcut.
 - Terminals are detected and pasted into with Ctrl+Shift+V.
+- Uninstall: `scripts/uninstall-linux.sh`.
 
 **Windows**
 
+- Run [whisper.cpp](https://github.com/ggml-org/whisper.cpp)'s `whisper-server` on port 8178.
+- Install [Ollama](https://ollama.com), then `ollama pull qwen2.5:3b-instruct`.
+- `copy vocabulary.example.txt vocabulary.txt`.
 - Install Python 3.11+, [AutoHotkey v2](https://www.autohotkey.com) and [sox](https://sourceforge.net/projects/sox/) (in `PATH`).
 - Start: double-click `frontends\windows\dictation.ahk`.
 - Hold **Alt+Space**, speak, release. **Alt+Shift+Space** adds Enter. **Esc** cancels.

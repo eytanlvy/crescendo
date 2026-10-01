@@ -32,6 +32,10 @@ models). Override anything in `config.toml`.
 
 ## Linux
 
+**Recommended: `scripts/install-linux.sh`** does everything below in one command (see the README). CI runs it on a
+fresh Ubuntu and transcribes a spoken sample end to end. The manual steps are kept for reference.
+
+
 ```sh
 sudo apt install alsa-utils xclip xdotool x11-utils libnotify-bin # X11
 sudo apt install alsa-utils wl-clipboard ydotool libnotify-bin   # Wayland (+ start ydotoold)
