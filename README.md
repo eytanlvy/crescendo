@@ -103,7 +103,7 @@ All settings live in [`config.toml`](config.toml). Reload Hammerspoon after edit
 
 - Every dictation is logged to `~/.local/share/voice-dictation/history.jsonl`.
 - Includes: target app, raw and final text, per-stage latency.
-- The last 50 recordings are kept in `audio/` (`keep_audio = 0` to disable).
+- Recordings are deleted after transcription (`keep_audio = N` keeps the last N in `audio/`).
 
 ```sh
 bin/dictate history -n 20 -v   # recent dictations, with raw text
