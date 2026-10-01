@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installe crescendo sur Linux (EXPÉRIMENTAL). Idempotent : peut être relancé.
+# Installe crescendo sur Linux. Idempotent : peut être relancé.
 #
 #   scripts/install-linux.sh [options]
 #

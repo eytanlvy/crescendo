@@ -1,4 +1,4 @@
-# Linux (experimental)
+# Linux
 
 Same pipeline as macOS (`bin/dictate`). Only the frontend differs: a small Python daemon
 (`frontends/linux/dictation_daemon.py`) for the shortcut, recording and paste.
@@ -10,7 +10,6 @@ Same pipeline as macOS (`bin/dictate`). Only the frontend differs: a small Pytho
 | Recording | sox `rec` | `arecord` |
 | Paste | ⌘V | X11: xclip + xdotool · Wayland: wl-clipboard + ydotool |
 | Services | LaunchAgents | systemd user units |
-| Status | supported | experimental |
 
 ## Install
 

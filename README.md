@@ -6,7 +6,7 @@ Push-to-talk dictation for macOS. 100 % local. Types into any app.
 - Hold **⌥⇧Space** → same, then **Enter**.
 - Works in terminals, Claude Code, Codex, VS Code, Slack, browsers, any text field.
 
-> **Platforms:** macOS on Apple Silicon (supported), Linux (experimental, see [below](#linux-experimental)).
+> **Platforms:** macOS on Apple Silicon, Linux (see [below](#linux)).
 
 ## Features
 
@@ -167,10 +167,9 @@ scripts/uninstall.sh --brew   # + Homebrew packages and Ollama models
 - Then remove Hammerspoon from Privacy & Security and Login Items.
 - Then delete the repository folder.
 
-## Linux (experimental)
+## Linux
 
 - Same pipeline, Python daemon as frontend.
-- Tested in CI only, not yet on real desktops. Feedback welcome.
 - Full guide: [docs/linux.md](docs/linux.md).
 
 ```sh

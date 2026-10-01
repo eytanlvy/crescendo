@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Frontend Linux (EXPÉRIMENTAL) de la dictée vocale : l'équivalent de hammerspoon/dictation.lua.
+"""Frontend Linux de la dictée vocale : l'équivalent de hammerspoon/dictation.lua.
 
 Deux façons de déclencher la dictée :
   1. Raccourci du bureau (GNOME, KDE, sway…) → `dictation_daemon.py ctl toggle` : un appui démarre,
