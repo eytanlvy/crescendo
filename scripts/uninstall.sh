@@ -24,7 +24,7 @@ s = open(p).read()
 s = re.sub(r"\n?-- >>> voice-dictation >>>.*?-- <<< voice-dictation <<<\n?", "\n", s, flags=re.S)
 open(p, "w").write(s.strip("\n") + ("\n" if s.strip() else ""))
 EOF
-  pgrep -xq Hammerspoon && /opt/homebrew/bin/hs -t 5 -c "hs.timer.doAfter(0.2, hs.reload)" >/dev/null 2>&1
+  pgrep -xq Hammerspoon && perl -e 'alarm 8; exec @ARGV' /opt/homebrew/bin/hs -t 5 -c "hs.timer.doAfter(0.2, hs.reload)" >/dev/null 2>&1
 fi
 
 step "Suppression des données (historique, audio, logs, modèles Whisper)"

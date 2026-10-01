@@ -57,7 +57,13 @@ write_agent() { # label, programme+args (séparés par \n), variables d'env (NOM
     print '</dict></plist>'
   } > "$plist"
   launchctl bootout "gui/$UID_/$label" 2>/dev/null || true
-  launchctl bootstrap "gui/$UID_" "$plist"
+  # bootout est asynchrone : charger avant la fin du déchargement échoue (« Bootstrap failed: 5 »).
+  for _ in {1..50}; do launchctl print "gui/$UID_/$label" >/dev/null 2>&1 || break; sleep 0.1; done
+  for attempt in {1..5}; do
+    launchctl bootstrap "gui/$UID_" "$plist" 2>/dev/null && return 0
+    sleep 1
+  done
+  launchctl bootstrap "gui/$UID_" "$plist"  # dernier essai, avec le message d'erreur
 }
 
 step "Service whisper-server (port $WHISPER_PORT)"
@@ -107,7 +113,7 @@ EOF
 defaults write org.hammerspoon.Hammerspoon MJShowDockIconKey -bool false
 defaults write org.hammerspoon.Hammerspoon HSUploadCrashData -bool false
 if pgrep -xq Hammerspoon; then
-  if ! /opt/homebrew/bin/hs -t 5 -c "hs.timer.doAfter(0.2, hs.reload)" >/dev/null 2>&1; then
+  if ! perl -e 'alarm 8; exec @ARGV' /opt/homebrew/bin/hs -t 5 -c "hs.timer.doAfter(0.2, hs.reload)" >/dev/null 2>&1; then
     osascript -e 'tell application "Hammerspoon" to quit'; sleep 1; open -a Hammerspoon
   fi
 else
