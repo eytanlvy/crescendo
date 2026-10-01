@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
-      - run: sudo apt-get update -q && sudo apt-get install -yq xvfb openbox xterm xclip xdotool
+      - run: sudo apt-get update -q && sudo apt-get install -yq xvfb openbox xterm xclip xdotool x11-utils
       - name: Insertion réelle dans un xterm (Xvfb + openbox)
         run: |
           Xvfb :99 -screen 0 1280x800x24 & sleep 1

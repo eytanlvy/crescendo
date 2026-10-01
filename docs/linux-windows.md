@@ -33,7 +33,7 @@ models). Override anything in `config.toml`.
 ## Linux
 
 ```sh
-sudo apt install alsa-utils xclip xdotool libnotify-bin          # X11
+sudo apt install alsa-utils xclip xdotool x11-utils libnotify-bin # X11
 sudo apt install alsa-utils wl-clipboard ydotool libnotify-bin   # Wayland (+ start ydotoold)
 python3 frontends/linux/dictation_daemon.py run
 ```

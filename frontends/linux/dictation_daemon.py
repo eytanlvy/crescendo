@@ -8,7 +8,7 @@ Deux façons de déclencher la dictée :
      Nécessite python3-evdev et l'accès en lecture à /dev/input (groupe `input`). La touche n'est pas
      « consommée » : choisissez-en une sans effet seule (Ctrl droit, F13…).
 
-Dépendances système : arecord (alsa-utils) ou rec (sox) ; X11 : xclip + xdotool ; Wayland : wl-clipboard + ydotool
+Dépendances système : arecord (alsa-utils) ou rec (sox) ; X11 : xclip + xdotool + xprop (x11-utils) ; Wayland : wl-clipboard + ydotool
 (avec le démon ydotoold) ; optionnel : notify-send, paplay.
 """
 from __future__ import annotations
@@ -38,8 +38,16 @@ SOUNDS = Path("/usr/share/sounds/freedesktop/stereo")
 
 
 def paste_keys(wm_class: str) -> str:
-    cls = (wm_class or "").lower()
-    return "ctrl+shift+v" if any(cls.startswith(t) for t in TERMINALS) else "ctrl+v"
+    """wm_class : « instance classe » (ou l'une des deux) de la fenêtre active."""
+    names = (wm_class or "").lower().split()
+    return "ctrl+shift+v" if any(n.startswith(t) for n in names for t in TERMINALS) else "ctrl+v"
+
+
+def parse_wm_class(xprop_output: str) -> str:
+    """'WM_CLASS(STRING) = "xterm", "XTerm"' → 'xterm XTerm'."""
+    if "=" not in xprop_output:
+        return ""
+    return " ".join(part.strip().strip('"') for part in xprop_output.split("=", 1)[1].split(",")).strip()
 
 
 def parse_command(line: str) -> tuple[str, str]:
@@ -173,10 +181,18 @@ class Paster:
         if self.wayland or not shutil.which("xdotool"):
             return ""
         for query in ("getactivewindow", "getwindowfocus"):  # getwindowfocus : sans gestionnaire de fenêtres
-            out = _run(["xdotool", query, "getwindowclassname"])
-            if out.returncode == 0 and out.stdout.strip():
-                return out.stdout.decode(errors="replace").strip()
-        return ""
+            wid = _run(["xdotool", query]).stdout.decode().strip()
+            if wid:
+                break
+        else:
+            return ""
+        # xprop d'abord : le xdotool de Debian/Ubuntu (2016) n'a pas `getwindowclassname`.
+        if shutil.which("xprop"):
+            out = _run(["xprop", "-id", wid, "WM_CLASS"])
+            if out.returncode == 0:
+                return parse_wm_class(out.stdout.decode(errors="replace"))
+        out = _run(["xdotool", "getwindowclassname", wid])
+        return out.stdout.decode(errors="replace").strip() if out.returncode == 0 else ""
 
     def _get(self) -> bytes | None:
         cmd = ["wl-paste", "-n"] if self.wayland else ["xclip", "-selection", "clipboard", "-o"]

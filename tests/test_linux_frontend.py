@@ -142,3 +142,17 @@ def test_parse_command(line, expected):
 def test_parse_command_rejects_unknown():
     with pytest.raises(ValueError):
         daemon.parse_command("rm -rf /")
+
+
+@pytest.mark.parametrize("xprop,expected", [
+    ('WM_CLASS(STRING) = "xterm", "XTerm"\n', "xterm XTerm"),
+    ('WM_CLASS(STRING) = "gnome-terminal-server", "Gnome-terminal"\n', "gnome-terminal-server Gnome-terminal"),
+    ("WM_CLASS:  not found.\n", ""),
+])
+def test_parse_wm_class(xprop, expected):
+    assert daemon.parse_wm_class(xprop) == expected
+
+
+def test_paste_keys_checks_instance_and_class():
+    assert daemon.paste_keys("xterm DictTest") == "ctrl+shift+v"
+    assert daemon.paste_keys("Navigator firefox") == "ctrl+v"
