@@ -43,3 +43,26 @@ jobs:
           $ahk = Get-ChildItem "C:\Program Files\AutoHotkey" -Recurse -Filter AutoHotkey64.exe | Where-Object FullName -like "*v2*" | Select-Object -First 1
           & $ahk.FullName /ErrorStdOut /Validate frontends\windows\dictation.ahk 2>&1 | Tee-Object -Variable out
           if ($LASTEXITCODE -ne 0) { exit 1 }
+
+  linux-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Installation complète (petits modèles pour la CI)
+        run: scripts/install-linux.sh --model tiny --llm qwen2.5:0.5b-instruct --no-systemd --shortcut none
+      - name: Transcription de bout en bout (espeak-ng → whisper.cpp → Ollama)
+        run: |
+          sudo apt-get install -yq espeak-ng sox
+          espeak-ng -v fr -w /tmp/raw.wav "Bonjour, ouvre une pull request et lance les tests avant ce soir."
+          sox /tmp/raw.wav -r 16000 -c 1 -b 16 /tmp/sample.wav
+          python3 bin/dictate /tmp/sample.wav --json | tee /tmp/result.json
+          python3 -c "
+          import json; r = json.load(open('/tmp/result.json'))
+          assert r['status'] == 'ok', r
+          assert len(r['text'].split()) >= 4, r['text']
+          print('transcription :', r['text'], '| nettoyage :', r.get('cleanup_status'))"
+      - name: Désinstallation
+        run: |
+          scripts/uninstall-linux.sh --ollama
+          test ! -e ~/.local/share/voice-dictation && echo "données supprimées"
