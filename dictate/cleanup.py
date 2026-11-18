@@ -46,6 +46,7 @@ FEW_SHOT = [
 ]
 
 OLLAMA_OPTIONS = {"temperature": 0, "top_k": 1, "num_ctx": 4096, "seed": 0}
+OLLAMA_KEEP_ALIVE = "5m"
 
 FILLERS = {"euh", "heu", "hum", "hmm", "bah", "ben", "um", "uh", "erm", "hein"}
 PREAMBLES = ["voici", "voila", "here is", "heres", "here are", "sure", "certainly", "of course", "bien sur",
@@ -185,7 +186,7 @@ def cleanup(text: str, cfg: dict) -> CleanupResult:
         "model": cfg["model"],
         "messages": build_messages(text),
         "stream": False,
-        "keep_alive": -1,
+        "keep_alive": OLLAMA_KEEP_ALIVE,
         "options": {**OLLAMA_OPTIONS, "num_predict": len(text) // 2 + 48},
     }
     t0 = time.perf_counter()
@@ -203,10 +204,10 @@ def cleanup(text: str, cfg: dict) -> CleanupResult:
 
 
 def warmup(cfg: dict) -> float:
-    """Charge le modèle en mémoire (keep_alive infini) et amorce le cache du préfixe (prompt système)."""
+    """Charge le modèle en mémoire et amorce le cache du préfixe (prompt système)."""
     t0 = time.perf_counter()
     post_json("ollama", cfg["url"].rstrip("/") + "/api/chat", {
         "model": cfg["model"], "messages": build_messages("bonjour à tous"), "stream": False,
-        "keep_alive": -1, "options": {**OLLAMA_OPTIONS, "num_predict": 8},
+        "keep_alive": OLLAMA_KEEP_ALIVE, "options": {**OLLAMA_OPTIONS, "num_predict": 8},
     }, timeout_s=120)
     return (time.perf_counter() - t0) * 1000

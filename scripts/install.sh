@@ -81,10 +81,10 @@ step "Service Ollama"
 # Agent dédié plutôt que `brew services` : il permet de fixer les variables d'environnement.
 brew services stop ollama >/dev/null 2>&1 || true
 write_agent com.voice-dictation.ollama "/opt/homebrew/bin/ollama
-serve" "OLLAMA_KEEP_ALIVE=-1
+serve" "OLLAMA_KEEP_ALIVE=5m
 OLLAMA_FLASH_ATTENTION=1
 OLLAMA_HOST=127.0.0.1:11434
-GGML_METAL_RESIDENCY_KEEP_ALIVE_S=31536000"
+GGML_METAL_RESIDENCY_KEEP_ALIVE_S=300"
 for i in {1..30}; do curl -sf http://127.0.0.1:11434/api/version >/dev/null && break; sleep 1; done
 
 step "Modèle de nettoyage : $LLM"

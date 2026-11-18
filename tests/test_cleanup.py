@@ -1,6 +1,6 @@
 import pytest
 
-from dictate.cleanup import build_messages, check_output, cleanup, needs_cleanup, postprocess
+from dictate.cleanup import build_messages, check_output, cleanup, needs_cleanup, postprocess, warmup
 
 CFG = {
     "enabled": True, "model": "qwen2.5:3b-instruct", "timeout_s": 2.0, "min_words": 4,
@@ -97,10 +97,16 @@ def test_cleanup_calls_ollama_with_expected_options(fake_server):
     body = fake_server.json_bodies()[0]
     assert path == "/api/chat"
     assert body["model"] == "qwen2.5:3b-instruct"
-    assert body["keep_alive"] == -1
+    assert body["keep_alive"] == "5m"
     assert body["stream"] is False
     assert body["options"]["temperature"] == 0
     assert body["options"]["num_predict"] > 0
+
+
+def test_warmup_uses_five_minute_idle_timeout(fake_server):
+    fake_server.response = ollama_reply("Bonjour à tous.")
+    warmup({**CFG, "url": fake_server.url})
+    assert fake_server.json_bodies()[0]["keep_alive"] == "5m"
 
 
 def test_cleanup_falls_back_to_raw_when_answering(fake_server):
